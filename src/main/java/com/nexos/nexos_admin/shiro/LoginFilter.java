@@ -31,8 +31,9 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
     @Override
     protected boolean executeLogin(ServletRequest request, ServletResponse response) throws Exception {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-        System.out.println("Path:"+((HttpServletRequest) request).getServletPath());
         String token = httpServletRequest.getHeader(AUTHORIZATION_HEADER);
+        // 判断是否需要刷新
+
         JwtToken jwtToken = new JwtToken(token);
         getSubject(request,response).login(jwtToken);
         return true;
