@@ -43,14 +43,28 @@ public class ShiroConfig {
     public ShiroFilterFactoryBean getShiroFilterFactory(SecurityManager securityManager){
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
         shiroFilterFactoryBean.setSecurityManager(securityManager);
-        // 设置过滤参数
-        Map urlConfigMap = new HashMap();
-        urlConfigMap.put("/**","login");
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(urlConfigMap);
-        // 设置自定义过滤器
         Map filters = new HashMap();
         filters.put("login",new LoginFilter());
         shiroFilterFactoryBean.setFilters(filters);
+        // 设置过滤参数
+        Map urlConfigMap = new HashMap();
+
+        // swagger 过滤
+        urlConfigMap.put("/", "anon");
+        urlConfigMap.put("/v2/api-docs/**", "anon");
+        urlConfigMap.put("/swagger-ui.html", "anon");
+        urlConfigMap.put("/swagger-resources/**", "anon");
+        urlConfigMap.put("/webjars/**", "anon");
+        urlConfigMap.put("/druid/**", "anon");
+        urlConfigMap.put("/configuration/security", "anon");
+        urlConfigMap.put("/configuration/ui", "anon");
+        urlConfigMap.put("/csrf", "anon");
+
+        urlConfigMap.put("/sys/login", "anon");
+        urlConfigMap.put("/sys/loginout", "anon");
+        urlConfigMap.put("/**","login");
+        shiroFilterFactoryBean.setFilterChainDefinitionMap(urlConfigMap);
+        // 设置自定义过滤器
         return shiroFilterFactoryBean;
     }
 

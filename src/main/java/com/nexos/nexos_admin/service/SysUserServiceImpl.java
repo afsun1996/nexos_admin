@@ -48,7 +48,7 @@ public class SysUserServiceImpl implements SysUserService {
         ResultInfo resultInfo = ResultInfo.newInstance();
         String userName = sysUserLoginVO.getUserName();
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userName",sysUserLoginVO.getUserName());
+        queryWrapper.eq("user_name",sysUserLoginVO.getUserName());
         SysUser sysUser = sysUserMapper.selectOne(queryWrapper);
         if (sysUser == null){
             resultInfo.setSuccess(false);
@@ -103,7 +103,7 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     public ResultInfo registerUser(SysUserSimpleInfo sysUserSimpleInfo) {
         ResultInfo resultInfo = ResultInfo.newInstance();
-        String privateKey = (String) redisTemplate.opsForValue().get("LoginPublicKey:" + sysUserSimpleInfo.getUsername());
+        String privateKey = (String) redisTemplate.opsForValue().get("LoginPublicKey:" + sysUserSimpleInfo.getUserName());
         if (StringUtils.isEmpty(privateKey)){
             resultInfo.setSuccess(false);
             resultInfo.setResultDesc("登录失败,请先获取公钥");
@@ -148,14 +148,24 @@ public class SysUserServiceImpl implements SysUserService {
 
     @Override
     public ResultInfo preRegisterCheck(PreRegisterCheckVO checkVO) {
+        ResultInfo resultInfo = ResultInfo.newInstance();
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
-        QueryWrapper<SysUser> user_name = queryWrapper.eq("user_name", sysUserSimpleInfo.getUsername());
-        SysUser sysUserfromDb = sysUserMapper.selectOne(user_name);
+        QueryWrapper<SysUser> query = queryWrapper.eq("user_name", checkVO.getUserName()).or().
+                eq("nick_name",checkVO.getNickName()).or().
+                eq("email",checkVO.getEmail());
+        SysUser sysUserfromDb = sysUserMapper.selectOne(query);
         if (sysUserfromDb != null){
+            if (checkVO.getUserName().equals(sysUserfromDb.getUserName())){
+                resultInfo.setResultDesc("注册失败,此用户名已经存在");
+            }else if (checkVO.getNickName().equals(sysUserfromDb.getNickName())){
+                resultInfo.setResultDesc("注册失败,昵称已经存在");
+            }else{
+                resultInfo.setResultDesc("注册失败,邮箱已经被注册");
+            }
             resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("注册失败,此用户名已经存在");
             return resultInfo;
         }
-        return null;
+        resultInfo.setSuccess(true);
+        return resultInfo;
     }
 }

@@ -24,7 +24,7 @@ public class SysUserSimpleInfo implements Serializable {
      * 用户名
      */
     @ApiModelProperty(value = "用户名")
-    private String username;
+    private String userName;
 
     /**
      * 密码(加密过)

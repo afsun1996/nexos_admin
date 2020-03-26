@@ -1,5 +1,6 @@
 package com.nexos.nexos_admin;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.nexos.nexos_admin.mapper.SysUserMapper;
 import com.nexos.nexos_admin.po.SysUser;
 import org.junit.jupiter.api.Test;
@@ -18,17 +19,11 @@ class NexosAdminApplicationTests {
     @Test
     void contextLoads() {
 
-        SysUser sysUser = new SysUser();
-//        sysUser.setId(11);
-        sysUser.setUserName("root");
-        sysUser.setPwd("123");
-        sysUser.setSalt("1212");
-        sysUserMapper.insert(sysUser);
 
-//        sysUser.setEmail("1213");
-//
-//        sysUserMapper.updateById(sysUser);
-
+        QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_name","root");
+        SysUser sysUser = sysUserMapper.selectOne(queryWrapper);
+        System.out.println(sysUser);
     }
 
 }
