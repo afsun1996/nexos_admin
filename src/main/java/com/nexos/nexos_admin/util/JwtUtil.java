@@ -1,8 +1,14 @@
 package com.nexos.nexos_admin.util;
 
+import com.nexos.nexos_admin.exception.BusinessResponseCode;
+import com.nexos.nexos_admin.exception.BussinessException;
+import com.nexos.nexos_admin.shiro.ShiroProperties;
 import io.jsonwebtoken.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import sun.misc.BASE64Decoder;
 
+import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,9 +19,20 @@ import java.util.Map;
  * @author: afsun
  * @create: 2020-03-25 14:07
  */
+@Component
 public class JwtUtil {
 
-    private static final String secret = "78944878877848fg)";
+    @Autowired
+    ShiroProperties shiroProperties;
+
+    @Autowired
+    private static JwtUtil jwtUtil;
+
+    @PostConstruct
+    public void init() {
+        jwtUtil = this;
+        jwtUtil.shiroProperties = this.shiroProperties;
+    }
 
 
     /**
@@ -52,13 +69,24 @@ public class JwtUtil {
     public static Claims getClaimsFromToken(String token){
         Claims body = null;
         try {
-            body = Jwts.parser().setSigningKey(new BASE64Decoder().decodeBuffer(secret)).parseClaimsJws(token).getBody();
-        } catch (Exception e) {
+            body = Jwts.parser().setSigningKey(new BASE64Decoder().decodeBuffer(jwtUtil.shiroProperties.getSecret()))
+                    .parseClaimsJws(token).getBody();
+        }
+        catch (ExpiredJwtException e){
+            throw new BussinessException(BusinessResponseCode.TOKEN_EXPRIED);
+        }
+        catch (Exception e) {
             e.printStackTrace();
             body = null;
+            throw new BussinessException(BusinessResponseCode.SYSTEM_BUSY);
         }
         return body;
 
+    }
+
+    public static Object getClaim(String token,String name){
+        Claims claimsFromToken = JwtUtil.getClaimsFromToken(token);
+        return claimsFromToken.get(name);
     }
 
 
@@ -84,15 +112,15 @@ public class JwtUtil {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        String issuer = "afsun";
-        String subject = "admin";
-        Map claim = new HashMap();
-        claim.put("role","administration");
-        claim.put("permission","sys");
-        String token = JwtUtil.generateToken(issuer, subject, claim, secret, 2400000);
-        System.out.println(token);
-//        Thread.sleep(2400);
-        System.out.println(JwtUtil.getClaimsFromToken(token));
+//        String issuer = "afsun";
+//        String subject = "admin";
+//        Map claim = new HashMap();
+//        claim.put("role","administration");
+//        claim.put("permission","sys");
+//        String token = JwtUtil.generateToken(issuer, subject, claim, ShiroProperties.secret, 2400000);
+//        System.out.println(token);
+////        Thread.sleep(2400);
+//        System.out.println(JwtUtil.getClaimsFromToken(token));
 
     }
 

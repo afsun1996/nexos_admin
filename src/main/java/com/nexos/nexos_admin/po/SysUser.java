@@ -1,8 +1,10 @@
 package com.nexos.nexos_admin.po;
 
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.nexos.nexos_admin.enums.SysUserLock;
 import com.nexos.nexos_admin.enums.SysUserStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -75,7 +77,7 @@ public class SysUser implements Serializable {
      * 状态
      */
     @ApiModelProperty(value = "状态")
-    private SysUserStatus status = SysUserStatus.ACCOUNT_UNLOCK;
+    private SysUserLock status = SysUserLock.ACCOUNT_UNLOCK;
 
     private static final long serialVersionUID = 1L;
 }

@@ -1,6 +1,8 @@
-package com.nexos.nexos_admin.domain;
+package com.nexos.nexos_admin.vo;
 
 import lombok.Data;
+
+import java.io.Serializable;
 
 /**
  * @program: NexosBlog
@@ -9,7 +11,7 @@ import lombok.Data;
  * @create: 2019-10-30 13:37
  */
 @Data
-public class ResultInfo<T> {
+public class ResultInfo<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

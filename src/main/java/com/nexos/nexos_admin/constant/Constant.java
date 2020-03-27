@@ -8,8 +8,14 @@ package com.nexos.nexos_admin.constant;
  */
 public class Constant {
 
-    public static final String ACCESS_TOKEN = "token";
+    public static final String REFRESH_KEY = "refreshkey:";
 
-//    public static final String
+    public static final String AUTH_HEAD = "Authorization:";
+
+    public static final String TOKEN_CREATIE_TIME = "currentTime:";
+
+    public static final String TOKEN_ROLE = "";
+
+    public static final String TOKEN_PERMISSION = "";
 
 }

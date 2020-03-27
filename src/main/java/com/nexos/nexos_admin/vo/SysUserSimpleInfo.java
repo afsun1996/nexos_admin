@@ -1,7 +1,9 @@
 package com.nexos.nexos_admin.vo;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.nexos.nexos_admin.enums.SysUserStatus;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -18,6 +20,7 @@ public class SysUserSimpleInfo implements Serializable {
      */
     @ApiModelProperty(value = "唯一id")
     @TableId(type = IdType.ASSIGN_ID)
+    @JsonIgnore
     private String id;
 
     /**
@@ -43,24 +46,28 @@ public class SysUserSimpleInfo implements Serializable {
      * 更新日期
      */
     @ApiModelProperty(value = "更新日期")
+    @JsonIgnore
     private Date updateTime;
 
     /**
      * 创建时间
      */
     @ApiModelProperty(value = "创建时间")
+    @JsonIgnore
     private Date createTime;
 
     /**
      * 是否删除
      */
     @ApiModelProperty(value = "是否删除")
+    @JsonIgnore
     private SysUserStatus deleted = SysUserStatus.ACCOUNT_VALID;
 
     /**
      * 状态
      */
     @ApiModelProperty(value = "状态")
+    @JsonIgnore
     private String status;
 
     private static final long serialVersionUID = 1L;

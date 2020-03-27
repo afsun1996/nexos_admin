@@ -1,17 +1,13 @@
 package com.nexos.nexos_admin.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
-import com.baomidou.mybatisplus.core.enums.IEnum;
 import com.fasterxml.jackson.annotation.JsonValue;
-import lombok.Data;
 
-import java.io.Serializable;
+public enum SysUserLock {
 
-public enum SysUserStatus {
+    ACCOUNT_LOCK("1","锁住"),ACCOUNT_UNLOCK("0","无锁");
 
-    ACCOUNT_VALID("0","有效"),ACCOUNT_INVALID("1","无效");
-
-    private SysUserStatus(String code,String desc){
+    private SysUserLock(String code,String desc){
         this.code = code;
         this.desc = desc;
     }

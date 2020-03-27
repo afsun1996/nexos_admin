@@ -1,6 +1,6 @@
 package com.nexos.nexos_admin.controller;
 
-import com.nexos.nexos_admin.domain.ResultInfo;
+import com.nexos.nexos_admin.vo.ResultInfo;
 import com.nexos.nexos_admin.service.facade.SysUserService;
 import com.nexos.nexos_admin.vo.PreRegisterCheckVO;
 import com.nexos.nexos_admin.vo.SysUserLoginVO;

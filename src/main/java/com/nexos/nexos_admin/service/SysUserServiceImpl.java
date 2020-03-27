@@ -1,8 +1,13 @@
 package com.nexos.nexos_admin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.nexos.nexos_admin.domain.ResultInfo;
+import com.nexos.nexos_admin.constant.Constant;
+import com.nexos.nexos_admin.exception.BusinessResponseCode;
+import com.nexos.nexos_admin.exception.BussinessException;
+import com.nexos.nexos_admin.vo.ResultInfo;
+import com.nexos.nexos_admin.enums.SysUserLock;
 import com.nexos.nexos_admin.enums.SysUserStatus;
+import com.nexos.nexos_admin.shiro.ShiroProperties;
 import com.nexos.nexos_admin.util.JwtUtil;
 import com.nexos.nexos_admin.mapper.SysUserMapper;
 import com.nexos.nexos_admin.po.SysUser;
@@ -19,9 +24,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +46,9 @@ public class SysUserServiceImpl implements SysUserService {
     @Autowired
     RedisTemplate redisTemplate;
 
+    @Autowired
+    ShiroProperties shiroProperties;
+
     private static Logger logger = LoggerFactory.getLogger(SysUserServiceImpl.class);
 
 
@@ -48,51 +57,33 @@ public class SysUserServiceImpl implements SysUserService {
         ResultInfo resultInfo = ResultInfo.newInstance();
         String userName = sysUserLoginVO.getUserName();
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("user_name",sysUserLoginVO.getUserName());
+        queryWrapper.eq("user_name", sysUserLoginVO.getUserName());
         SysUser sysUser = sysUserMapper.selectOne(queryWrapper);
-        if (sysUser == null){
-            resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("登录失败,无此用户");
-            return resultInfo;
+        if (sysUser == null) {
+            throw new BussinessException(BusinessResponseCode.ACCOUNT_UNFIND);
         }
-        if (SysUserStatus.ACCOUNT_INVALID.equals(sysUser.getDeleted())){
-            resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("登录失败,用户已经被删除");
-            return resultInfo;
+        if (SysUserStatus.ACCOUNT_INVALID.equals(sysUser.getDeleted())) {
+            throw new BussinessException(BusinessResponseCode.USER_INVALID);
         }
-        if (SysUserStatus.ACCOUNT_LOCK.equals(sysUser.getStatus())){
-            resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("登录失败,用户被锁");
-            return resultInfo;
+        if (SysUserLock.ACCOUNT_LOCK.equals(sysUser.getStatus())) {
+            throw new BussinessException(BusinessResponseCode.USER_LOCK);
         }
-        // 获取加密后的密码 用私密解码
-        String password = sysUserLoginVO.getPassword();
-        String privateKey = (String) redisTemplate.opsForValue().get("LoginPublicKey:" + userName);
-        if (StringUtils.isEmpty(privateKey)){
-            resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("登录失败,请先获取公钥");
-            return resultInfo;
+        String originPwd = sysUserLoginVO.getPassword();
+        String dbPwd = sysUser.getPwd();
+        String salt = sysUser.getSalt();
+        if (!dbPwd.equals(MD5Util.encode(originPwd, salt))) {
+            throw new BussinessException(BusinessResponseCode.PWD_ERROR);
         }
-        try {
-            String originPwd = RSAEncrypt.decrypt(password, privateKey);
-            String salt = sysUser.getSalt();
-            if (!password.equals(MD5Util.encode(originPwd, salt))){
-                resultInfo.setSuccess(false);
-                resultInfo.setResultDesc("登录失败,密码不正确");
-                return resultInfo;
-            }
-            // 登录成功
-            redisTemplate.delete("LoginPublicKey:" + userName);
-            String token = JwtUtil.generateToken("nexos", userName, null, "", 256000);
-            resultInfo.setSuccess(true);
-            resultInfo.setResult(token);
-            resultInfo.setCode("0000");
-            return resultInfo;
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error(e.getMessage());
-            throw new RuntimeException(e);
-        }
+        Map userMap = new HashMap();
+        userMap.put(Constant.TOKEN_ROLE, "");
+        userMap.put(Constant.TOKEN_PERMISSION, "");
+        userMap.put(Constant.TOKEN_CREATIE_TIME, new Date().getTime());
+        String token = JwtUtil.generateToken("nexos", userName, userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
+        resultInfo.setSuccess(true);
+        resultInfo.setResult(token);
+        resultInfo.setCode("0000");
+        return resultInfo;
+
     }
 
     @Override
@@ -103,17 +94,12 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     public ResultInfo registerUser(SysUserSimpleInfo sysUserSimpleInfo) {
         ResultInfo resultInfo = ResultInfo.newInstance();
-        String privateKey = (String) redisTemplate.opsForValue().get("LoginPublicKey:" + sysUserSimpleInfo.getUserName());
-        if (StringUtils.isEmpty(privateKey)){
-            resultInfo.setSuccess(false);
-            resultInfo.setResultDesc("登录失败,请先获取公钥");
-            return resultInfo;
-        }
+
         SysUser sysUser = new SysUser();
-        BeanUtils.copyProperties(sysUserSimpleInfo,sysUser);
+        BeanUtils.copyProperties(sysUserSimpleInfo, sysUser);
         try {
             // 获取到原始密码
-            String originPwd = RSAEncrypt.decrypt(sysUserSimpleInfo.getPwd(), privateKey);
+            String originPwd = sysUserSimpleInfo.getPwd();
             // 生产随机salt 进行MD5加密
             String salt = SaltGenerator.generator();
             sysUser.setSalt(salt);
@@ -125,7 +111,7 @@ public class SysUserServiceImpl implements SysUserService {
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e.getMessage());
-            throw new RuntimeException(e);
+            throw new BussinessException(BusinessResponseCode.SYSTEM_BUSY);
         }
     }
 
@@ -142,7 +128,7 @@ public class SysUserServiceImpl implements SysUserService {
         String publicKey = keyMap.get("public");
         resultInfo.setResult(publicKey);
         // 存入redis中
-        redisTemplate.opsForValue().set("LoginPublicKey:"+userName,privateKey,18000, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set("LoginPublicKey:" + userName, privateKey, 18000, TimeUnit.SECONDS);
         return resultInfo;
     }
 
@@ -151,15 +137,15 @@ public class SysUserServiceImpl implements SysUserService {
         ResultInfo resultInfo = ResultInfo.newInstance();
         QueryWrapper<SysUser> queryWrapper = new QueryWrapper<>();
         QueryWrapper<SysUser> query = queryWrapper.eq("user_name", checkVO.getUserName()).or().
-                eq("nick_name",checkVO.getNickName()).or().
-                eq("email",checkVO.getEmail());
+                eq("nick_name", checkVO.getNickName()).or().
+                eq("email", checkVO.getEmail());
         SysUser sysUserfromDb = sysUserMapper.selectOne(query);
-        if (sysUserfromDb != null){
-            if (checkVO.getUserName().equals(sysUserfromDb.getUserName())){
+        if (sysUserfromDb != null) {
+            if (checkVO.getUserName().equals(sysUserfromDb.getUserName())) {
                 resultInfo.setResultDesc("注册失败,此用户名已经存在");
-            }else if (checkVO.getNickName().equals(sysUserfromDb.getNickName())){
+            } else if (checkVO.getNickName().equals(sysUserfromDb.getNickName())) {
                 resultInfo.setResultDesc("注册失败,昵称已经存在");
-            }else{
+            } else {
                 resultInfo.setResultDesc("注册失败,邮箱已经被注册");
             }
             resultInfo.setSuccess(false);

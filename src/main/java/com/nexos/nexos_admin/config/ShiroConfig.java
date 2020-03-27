@@ -1,10 +1,10 @@
 package com.nexos.nexos_admin.config;    /**
  * Created by 孙爱飞 on 2020/3/25.
  */
-
+import com.nexos.nexos_admin.service.facade.RedisService;
 import com.nexos.nexos_admin.shiro.LoginFilter;
+import com.nexos.nexos_admin.shiro.ShiroProperties;
 import com.nexos.nexos_admin.shiro.ShiroRealm;
-import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.spring.LifecycleBeanPostProcessor;
 import org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor;
 import org.apache.shiro.spring.web.ShiroFilterFactoryBean;
@@ -40,30 +40,30 @@ public class ShiroConfig {
     }
 
     @Bean
-    public ShiroFilterFactoryBean getShiroFilterFactory(SecurityManager securityManager){
+    public ShiroFilterFactoryBean getShiroFilterFactory(RedisService redisService, DefaultWebSecurityManager securityManager,
+                                                        ShiroProperties shiroProperties){
         ShiroFilterFactoryBean shiroFilterFactoryBean = new ShiroFilterFactoryBean();
         shiroFilterFactoryBean.setSecurityManager(securityManager);
         Map filters = new HashMap();
-        filters.put("login",new LoginFilter());
+        filters.put("login",new LoginFilter(shiroProperties,redisService));
         shiroFilterFactoryBean.setFilters(filters);
         // 设置过滤参数
-        Map urlConfigMap = new HashMap();
+        Map filterChainDefinitionMap = new HashMap();
 
         // swagger 过滤
-        urlConfigMap.put("/", "anon");
-        urlConfigMap.put("/v2/api-docs/**", "anon");
-        urlConfigMap.put("/swagger-ui.html", "anon");
-        urlConfigMap.put("/swagger-resources/**", "anon");
-        urlConfigMap.put("/webjars/**", "anon");
-        urlConfigMap.put("/druid/**", "anon");
-        urlConfigMap.put("/configuration/security", "anon");
-        urlConfigMap.put("/configuration/ui", "anon");
-        urlConfigMap.put("/csrf", "anon");
+        filterChainDefinitionMap.put("/swagger-ui.html", "anon");
+        filterChainDefinitionMap.put("/swagger/**", "anon");
+        filterChainDefinitionMap.put("/swagger-resources/**", "anon");
+        filterChainDefinitionMap.put("/v2/**", "anon");
+        filterChainDefinitionMap.put("/webjars/**", "anon");
+        filterChainDefinitionMap.put("/configuration/**", "anon");
 
-        urlConfigMap.put("/sys/login", "anon");
-        urlConfigMap.put("/sys/loginout", "anon");
-        urlConfigMap.put("/**","login");
-        shiroFilterFactoryBean.setFilterChainDefinitionMap(urlConfigMap);
+        filterChainDefinitionMap.put("/sys/login", "anon");
+        filterChainDefinitionMap.put("/sys/registerUser", "anon");
+        filterChainDefinitionMap.put("/sys/preRegisterCheck", "anon");
+        filterChainDefinitionMap.put("/sys/loginout", "anon");
+        filterChainDefinitionMap.put("/**","login");
+        shiroFilterFactoryBean.setFilterChainDefinitionMap(filterChainDefinitionMap);
         // 设置自定义过滤器
         return shiroFilterFactoryBean;
     }
