@@ -13,15 +13,15 @@ import java.io.StringWriter;
  */
 public class ExceptionUtils {
 
-        public static String getMessage(Exception e) {
-            StringWriter out = new StringWriter();
-            e.printStackTrace(new PrintWriter(out));
-            return out.toString();
-        }
+    public static String getMessage(Exception e) {
+        StringWriter out = new StringWriter();
+        e.printStackTrace(new PrintWriter(out));
+        return out.toString();
+    }
 
-        public static void loggerMessage(Exception e, Logger logger) {
-            StringWriter out = new StringWriter();
-            e.printStackTrace(new PrintWriter(out));
-            logger.error(out.toString());
-        }
+    public static void loggerMessage(Exception e, Logger logger) {
+        StringWriter out = new StringWriter();
+        e.printStackTrace(new PrintWriter(out));
+        logger.error(out.toString());
+    }
 }

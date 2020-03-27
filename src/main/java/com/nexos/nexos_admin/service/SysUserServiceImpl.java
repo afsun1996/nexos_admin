@@ -82,7 +82,7 @@ public class SysUserServiceImpl implements SysUserService {
         userMap.put(Constant.TOKEN_ROLE, "");
         userMap.put(Constant.TOKEN_PERMISSION, "");
         userMap.put(Constant.TOKEN_CREATIE_TIME, new Date().getTime());
-        String token = JwtUtil.generateToken("nexos", userName, userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
+        String token = JwtUtil.generateToken("nexos", sysUser.getId(), userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
         resultInfo.setSuccess(true);
         resultInfo.setResult(token);
         resultInfo.setCode("0000");
