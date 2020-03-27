@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.nexos.nexos_admin.constant.Constant;
 import com.nexos.nexos_admin.exception.BusinessResponseCode;
 import com.nexos.nexos_admin.exception.BussinessException;
+import com.nexos.nexos_admin.service.facade.RedisService;
 import com.nexos.nexos_admin.vo.ResultInfo;
 import com.nexos.nexos_admin.enums.SysUserLock;
 import com.nexos.nexos_admin.enums.SysUserStatus;
@@ -49,6 +50,9 @@ public class SysUserServiceImpl implements SysUserService {
     @Autowired
     ShiroProperties shiroProperties;
 
+    @Autowired
+    RedisService redisService;
+
     private static Logger logger = LoggerFactory.getLogger(SysUserServiceImpl.class);
 
 
@@ -82,6 +86,7 @@ public class SysUserServiceImpl implements SysUserService {
         resultInfo.setSuccess(true);
         resultInfo.setResult(token);
         resultInfo.setCode("0000");
+        redisService.delete(Constant.REFRESH_KEY+sysUserLoginVO.getUserName());
         return resultInfo;
 
     }

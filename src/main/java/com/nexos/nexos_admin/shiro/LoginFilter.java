@@ -2,16 +2,20 @@ package com.nexos.nexos_admin.shiro;    /**
  * Created by 孙爱飞 on 2020/3/25.
  */
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.nexos.nexos_admin.constant.Constant;
 import com.nexos.nexos_admin.exception.BusinessResponseCode;
 import com.nexos.nexos_admin.exception.BussinessException;
 import com.nexos.nexos_admin.exception.ResponseCode;
 import com.nexos.nexos_admin.service.facade.RedisService;
+import com.nexos.nexos_admin.util.ExceptionUtils;
 import com.nexos.nexos_admin.util.JwtUtil;
 import com.nexos.nexos_admin.vo.ResultInfo;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.reflection.ExceptionUtil;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.web.filter.authc.BasicHttpAuthenticationFilter;
 import org.springframework.http.HttpStatus;
@@ -22,9 +26,14 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * @description: // 登录过滤器
@@ -64,18 +73,23 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
             // 判断是否需要刷新
             Claims claimsFromToken = JwtUtil.getClaimsFromToken(token);
             Date expiration = claimsFromToken.getExpiration();
-            if (expiration.getTime() - currentTimeMillis < shiroProperties.getRefreshTime()) {
-                // 加上分布式锁
-                boolean lock = redisService.getLock((String) jwtToken.getPrincipal(), token, 10);// 上锁
+            // 打印日志
+            long overTime = expiration.getTime() - currentTimeMillis;
+            long tokenCreateTime = (long) claimsFromToken.get(Constant.TOKEN_CREATIE_TIME); // token中解析的创建时间
+            log.info("token过期时间还剩{}min, token刷新时间还剩{}min", TimeUnit.MILLISECONDS.toMinutes(overTime),
+                    TimeUnit.MILLISECONDS.toMinutes(shiroProperties.getRefreshTime() -(currentTimeMillis - tokenCreateTime)));
+            if (currentTimeMillis - tokenCreateTime> shiroProperties.getRefreshTime()) { //
                 try {
+                    // 加上分布式锁
+                    boolean lock = redisService.getLock(claimsFromToken.getSubject(), token, 10);// 上锁
                     if (lock) {
                         Object result = redisService.get(Constant.REFRESH_KEY + claimsFromToken.getSubject());
                         if (result != null) {
-                            long expireTime = (long) result; // redis存储的token创建时间
-                            long tokenCreateTime = (long) claimsFromToken.get(Constant.TOKEN_CREATIE_TIME); // token中解析的创建时间
-                            if (expireTime != expiration.getTime()) { // 时间不一致,则说明是用旧的token登录
+                            long lastCreateTime = (long) result; // redis存储的token创建时间
+                            if (lastCreateTime > tokenCreateTime) { // 时间不一致,则说明是用旧的token登录
                                 throw new BussinessException(BusinessResponseCode.TOKEN_EXPRIED);
                             }
+                            redisService.delete(Constant.REFRESH_KEY + claimsFromToken.getSubject());
                         }
                         Map userMap = new HashMap();
                         userMap.put(Constant.TOKEN_ROLE, claimsFromToken.get(Constant.TOKEN_ROLE));
@@ -83,15 +97,18 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
                         userMap.put(Constant.TOKEN_CREATIE_TIME, currentTimeMillis);
                         String newToken = JwtUtil.generateToken("nexos", claimsFromToken.getSubject(),
                                 userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
-                        System.out.println(newToken);
+                        log.info("刷新token获得newToken = {}",newToken);
                         redisService.set(Constant.REFRESH_KEY + claimsFromToken.getSubject(), currentTimeMillis
                                 , shiroProperties.getExpireTime()); // 存入redis缓存中
                         HttpServletResponse httpServletResponse = (HttpServletResponse) response;
                         httpServletResponse.setHeader(Constant.AUTH_HEAD, newToken);
                         httpServletResponse.setHeader("Access-Control-Expose-Headers", Constant.AUTH_HEAD);
                     }
+                    else {
+                        throw new BussinessException(BusinessResponseCode.OPERATE_FAST);
+                    }
                 } finally {
-                    redisService.releaseLock((String) jwtToken.getPrincipal(), token);                // 释放锁
+                    redisService.releaseLock(claimsFromToken.getSubject(), token);                // 释放锁
                 }
             }
         }catch (BussinessException exception) {
@@ -101,6 +118,7 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
             this.errorMsgHandler(new BussinessException(BusinessResponseCode.TOKEN_EXPRIED), request, response);
         }
         catch (Exception exception) {
+            log.error(ExceptionUtils.getMessage(exception));
             this.errorMsgHandler(new BussinessException(BusinessResponseCode.SYSTEM_BUSY), request, response);
         }
         return true;
@@ -131,10 +149,10 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
      */
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
-        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-        httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
-        httpServletResponse.setCharacterEncoding("UTF-8");
-        httpServletResponse.setContentType("application/json; charset=utf-8");
+//        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+//        httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
+//        httpServletResponse.setCharacterEncoding("UTF-8");
+//        httpServletResponse.setContentType("application/json; charset=utf-8");
         return false;
     }
 
@@ -155,12 +173,21 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
         resultInfo.setSuccess(false);
         resultInfo.setCode(String.valueOf(exception.getCode()));
         resultInfo.setResultDesc(exception.getDescMsg());
-        ServletOutputStream outputStream = null;
+        OutputStream writer = null;
         try {
-            outputStream = httpServletResponse.getOutputStream();
-            outputStream.write(JSONObject.toJSONString(resultInfo).getBytes());
+            writer = httpServletResponse.getOutputStream();
+            writer.write(JSON.toJSONString(resultInfo, SerializerFeature.WriteMapNullValue).getBytes("UTF-8"));
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+          if (writer != null){
+              try {
+                  writer.close();
+              } catch (IOException e) {
+                  e.printStackTrace();
+              }
+          }
         }
         return false;
     }

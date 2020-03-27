@@ -1,5 +1,6 @@
 package com.nexos.nexos_admin.exception;
 
+import com.nexos.nexos_admin.util.ExceptionUtils;
 import com.nexos.nexos_admin.vo.ResultInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -38,6 +39,7 @@ public class CommonExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResultInfo handleException(Exception exception){
+        log.error(ExceptionUtils.getMessage(exception));
         ResultInfo resultInfo = ResultInfo.newInstance();
         resultInfo.setSuccess(false);
         resultInfo.setCode(String.valueOf(BusinessResponseCode.SYSTEM_BUSY.getCode()));

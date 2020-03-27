@@ -1,5 +1,6 @@
 package com.nexos.nexos_admin.vo;
 
+import io.swagger.annotations.Api;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,6 +12,7 @@ import java.io.Serializable;
  * @create: 2019-10-30 13:37
  */
 @Data
+@Api("输出结果")
 public class ResultInfo<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;

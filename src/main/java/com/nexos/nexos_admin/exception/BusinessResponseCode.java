@@ -11,6 +11,7 @@ public enum BusinessResponseCode implements ResponseCode {
     SYSTEM_BUSY(50001, "系统繁忙"),
     RPC_BUSY(50002,"RPC繁忙"),
     OPERATE_ERROR(50003,"操作失败"),
+    OPERATE_FAST(50004,"操作过快,请稍后再试"),
 
     TOKEN_EXPRIED(2001,"登录TOKEN已经过期"),
     TOKEN_BLANK(2002,"登录TOKEN为空"),
