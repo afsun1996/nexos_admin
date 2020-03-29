@@ -1,8 +1,13 @@
 package com.nexos.nexos_admin.vo;
 
+import com.nexos.nexos_admin.constant.Constant;
+import com.nexos.nexos_admin.util.NetWorkUtils;
 import io.swagger.annotations.Api;
 import lombok.Data;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 
 /**
@@ -21,7 +26,7 @@ public class ResultInfo<T> implements Serializable {
     private T result;
 
     // 成功标志位
-    private boolean success;
+    private boolean success = true;
 
     // 错误码
     private String code;
@@ -29,8 +34,19 @@ public class ResultInfo<T> implements Serializable {
     // 错误描述
     private String ResultDesc;
 
+    // 唯一表示
+    private long uuid;
+
     public static ResultInfo newInstance(){
-        return new ResultInfo();
+        ResultInfo resultInfo = new ResultInfo();
+        HttpServletRequest httpServletRequest = NetWorkUtils.getHttpServletRequest();
+        if (httpServletRequest != null){
+            Object attribute = httpServletRequest.getAttribute(Constant.SERIAL_NUMBER);
+            if (attribute!=null){
+                resultInfo.setUuid((Long) attribute);
+            }
+        }
+        return resultInfo;
     }
 
 }

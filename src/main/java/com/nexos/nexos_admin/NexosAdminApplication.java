@@ -11,12 +11,14 @@ import org.springframework.boot.web.servlet.ServletComponentScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 @EnableTransactionManagement
 @EnableScheduling
-@ServletComponentScan(basePackages = "top.afsun1996.nexos.controller")
+@ServletComponentScan(basePackages = "com.nexos.nexos_admin.controller")
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 @MapperScan(basePackages = {"com.nexos.nexos_admin.mapper"})
+//@EnableWebMvc
 public class NexosAdminApplication {
 
     @Bean

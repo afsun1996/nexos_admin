@@ -81,12 +81,12 @@ public class SysUserServiceImpl implements SysUserService {
         Map userMap = new HashMap();
         userMap.put(Constant.TOKEN_ROLE, "");
         userMap.put(Constant.TOKEN_PERMISSION, "");
-        userMap.put(Constant.TOKEN_CREATIE_TIME, new Date().getTime());
+        userMap.put(Constant.TOKEN_CREATIE_TIME, System.currentTimeMillis());
         String token = JwtUtil.generateToken("nexos", sysUser.getId(), userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
         resultInfo.setSuccess(true);
         resultInfo.setResult(token);
         resultInfo.setCode("0000");
-        redisService.delete(Constant.REFRESH_KEY+sysUserLoginVO.getUserName());
+        redisService.delete(Constant.REFRESH_KEY+sysUser.getId());
         return resultInfo;
 
     }

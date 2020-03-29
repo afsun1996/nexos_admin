@@ -10,7 +10,6 @@ import java.util.UUID;
  */
 public class SaltGenerator {
 
-
     public static String generator(){
         String uuid = UUID.randomUUID().toString();
         return  uuid.replaceAll("-", "");

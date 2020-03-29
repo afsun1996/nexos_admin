@@ -1,6 +1,8 @@
 package com.nexos.nexos_admin.aop;
 
 
+import lombok.Data;
+
 import java.lang.annotation.*;
 
 @Target(ElementType.METHOD)

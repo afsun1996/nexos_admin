@@ -2,6 +2,9 @@ package com.nexos.nexos_admin.po;
 
 import java.io.Serializable;
 import java.util.Date;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 
 @Data
@@ -9,6 +12,7 @@ public class SysLog implements Serializable {
     /**
      * 日志号
      */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -25,6 +29,8 @@ public class SysLog implements Serializable {
      * 调用耗时
      */
     private Long consumeTime;
+
+    private String moduleName;
 
     /**
      * 请求地址

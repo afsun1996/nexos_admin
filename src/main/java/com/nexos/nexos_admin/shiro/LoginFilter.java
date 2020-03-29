@@ -19,6 +19,8 @@ import org.apache.ibatis.reflection.ExceptionUtil;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.web.filter.authc.BasicHttpAuthenticationFilter;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletRequest;
@@ -44,7 +46,6 @@ import java.util.logging.Logger;
 @Slf4j
 public class LoginFilter extends BasicHttpAuthenticationFilter {
 
-
     RedisService redisService;
 
     ShiroProperties shiroProperties;
@@ -65,8 +66,8 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
     @Override
     protected boolean executeLogin(ServletRequest request, ServletResponse response) {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-        long currentTimeMillis = new Date().getTime();
-        String token = httpServletRequest.getHeader(AUTHORIZATION_HEADER);
+        long currentTimeMillis = System.currentTimeMillis();
+        String token = httpServletRequest.getHeader(Constant.AUTH_HEAD);
         JwtToken jwtToken = new JwtToken(token);
         try {
             getSubject(request, response).login(jwtToken);
@@ -111,15 +112,9 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
                     redisService.releaseLock(claimsFromToken.getSubject(), token);                // 释放锁
                 }
             }
-        }catch (BussinessException exception) {
-            this.errorMsgHandler(exception, request, response);
-        }
-        catch (AuthenticationException autenException){
-            this.errorMsgHandler(new BussinessException(BusinessResponseCode.TOKEN_EXPRIED), request, response);
         }
         catch (Exception exception) {
-            log.error(ExceptionUtils.getMessage(exception));
-            this.errorMsgHandler(new BussinessException(BusinessResponseCode.SYSTEM_BUSY), request, response);
+            throw exception;
         }
         return true;
     }
@@ -135,8 +130,19 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
      */
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
-        this.executeLogin(request, response);
-        return true;
+        try {
+            this.executeLogin(request, response);
+            return true;
+        } catch (BussinessException exception) {
+            this.errorMsgHandler(exception, request, response);
+        }
+        catch (AuthenticationException autenException){
+            this.errorMsgHandler(new BussinessException(BusinessResponseCode.TOKEN_EXPRIED), request, response);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /**
@@ -173,19 +179,20 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
         resultInfo.setSuccess(false);
         resultInfo.setCode(String.valueOf(exception.getCode()));
         resultInfo.setResultDesc(exception.getDescMsg());
+        resultInfo.setUuid((Long) request.getAttribute("UUID"));
         OutputStream writer = null;
         try {
             writer = httpServletResponse.getOutputStream();
             writer.write(JSON.toJSONString(resultInfo, SerializerFeature.WriteMapNullValue).getBytes("UTF-8"));
             writer.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(ExceptionUtils.getMessage(e));
         }finally {
           if (writer != null){
               try {
                   writer.close();
               } catch (IOException e) {
-                  e.printStackTrace();
+                  log.error(ExceptionUtils.getMessage(e));
               }
           }
         }
