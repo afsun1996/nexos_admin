@@ -1,4 +1,5 @@
-package com.nexos.nexos_admin.shiro;    /**
+package com.nexos.nexos_admin.shiro;
+/**
  * Created by 孙爱飞 on 2020/3/25.
  */
 
@@ -82,13 +83,13 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
             if (currentTimeMillis - tokenCreateTime> shiroProperties.getRefreshTime()) { //
                 try {
                     // 加上分布式锁
-                    boolean lock = redisService.getLock(claimsFromToken.getSubject(), token, 10);// 上锁
+                    boolean lock = redisService.getLock(claimsFromToken.getSubject(), token, 60);// 上锁
                     if (lock) {
                         Object result = redisService.get(Constant.REFRESH_KEY + claimsFromToken.getSubject());
                         if (result != null) {
                             long lastCreateTime = (long) result; // redis存储的token创建时间
                             if (lastCreateTime > tokenCreateTime) { // 时间不一致,则说明是用旧的token登录
-                                throw new BussinessException(BusinessResponseCode.TOKEN_EXPRIED);
+                                throw new BussinessException(BusinessResponseCode.TOKEN_OLD);
                             }
                             redisService.delete(Constant.REFRESH_KEY + claimsFromToken.getSubject());
                         }
@@ -155,10 +156,6 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
      */
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
-//        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-//        httpServletResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
-//        httpServletResponse.setCharacterEncoding("UTF-8");
-//        httpServletResponse.setContentType("application/json; charset=utf-8");
         return false;
     }
 
@@ -179,7 +176,10 @@ public class LoginFilter extends BasicHttpAuthenticationFilter {
         resultInfo.setSuccess(false);
         resultInfo.setCode(String.valueOf(exception.getCode()));
         resultInfo.setResultDesc(exception.getDescMsg());
-        resultInfo.setUuid((Long) request.getAttribute("UUID"));
+        Object uuid = request.getAttribute("UUID");
+        if (uuid != null) {
+            resultInfo.setUuid((Long) uuid);
+        }
         OutputStream writer = null;
         try {
             writer = httpServletResponse.getOutputStream();

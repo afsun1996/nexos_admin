@@ -76,8 +76,6 @@ public class JwtUtil {
             throw new BussinessException(BusinessResponseCode.TOKEN_EXPRIED);
         }
         catch (Exception e) {
-            e.printStackTrace();
-            body = null;
             throw new BussinessException(BusinessResponseCode.SYSTEM_BUSY);
         }
         return body;

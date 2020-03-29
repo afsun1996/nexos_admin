@@ -13,8 +13,8 @@ public enum BusinessResponseCode implements ResponseCode {
     OPERATE_ERROR(50003,"操作失败"),
     OPERATE_FAST(50004,"操作过快,请稍后再试"),
 
-    TOKEN_EXPRIED(2001,"登录TOKEN已经过期"),
-    TOKEN_BLANK(2002,"登录TOKEN为空"),
+    TOKEN_EXPRIED(2001,"登录TOKEN已经过期或TOKEN错误"),
+    TOKEN_OLD(2002,"请勿使用废弃的TOKEN登录"),
     TOKEN_ERROR(2003,"登录TOKEN错误"),
 
     PWD_ERROR(3001,"登录密码错误"),
