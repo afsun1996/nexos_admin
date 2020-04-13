@@ -2,14 +2,20 @@ package com.nexos.nexos_admin.shiro;    /**
  * Created by 孙爱飞 on 2020/3/25.
  */
 
+import com.nexos.nexos_admin.constant.Constant;
 import com.nexos.nexos_admin.util.JwtUtil;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.SimpleAuthenticationInfo;
 import org.apache.shiro.authz.AuthorizationInfo;
+import org.apache.shiro.authz.SimpleAuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
 
 /**
@@ -20,9 +26,14 @@ import org.apache.shiro.subject.PrincipalCollection;
  */
 public class ShiroRealm extends AuthorizingRealm {
 
+
     @Override
     protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
-        return null;
+        SimpleAuthorizationInfo authorizationInfo = new SimpleAuthorizationInfo();
+        String token = (String) principalCollection.getPrimaryPrincipal();
+//        Object claim = JwtUtil.getClaim(token, Constant.TOKEN_PERMISSION);
+        authorizationInfo.addStringPermissions((ArrayList) JwtUtil.getClaim(token, Constant.TOKEN_PERMISSION));
+        return authorizationInfo;
     }
 
 

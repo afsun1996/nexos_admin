@@ -27,9 +27,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.NoSuchAlgorithmException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,8 +77,10 @@ public class SysUserServiceImpl implements SysUserService {
             throw new BussinessException(BusinessResponseCode.PWD_ERROR);
         }
         Map userMap = new HashMap();
-        userMap.put(Constant.TOKEN_ROLE, "");
-        userMap.put(Constant.TOKEN_PERMISSION, "");
+        Set permissions = new HashSet<>();
+        permissions.add("sys:query");
+        userMap.put(Constant.TOKEN_ROLE, "root");
+        userMap.put(Constant.TOKEN_PERMISSION, permissions);
         userMap.put(Constant.TOKEN_CREATIE_TIME, System.currentTimeMillis());
         String token = JwtUtil.generateToken("nexos", sysUser.getId(), userMap, shiroProperties.getSecret(), shiroProperties.getExpireTime());
         resultInfo.setSuccess(true);
